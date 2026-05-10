@@ -108,31 +108,27 @@ open_dev_and_reviewer_windows() {
   local reviewer_prompt="$5"
   local terminal_app="${6:-ghostty}"   # ghostty | terminal
 
-  local dev_base reviewer_base dev_cmd reviewer_cmd
+  local dev_cmd reviewer_cmd
 
-  # 模型指定时构建命令，启动失败自动降级到默认模型
+  # 构建完整命令：模型失败时整体 fallback，@prompt 在两侧都存在
+  local dev_prompt_arg="" reviewer_prompt_arg=""
+  if [[ -n "$dev_prompt" && -f "$dev_prompt" ]]; then
+    dev_prompt_arg="\"@$dev_prompt\""
+  fi
+  if [[ -n "$reviewer_prompt" && -f "$reviewer_prompt" ]]; then
+    reviewer_prompt_arg="\"@$reviewer_prompt\""
+  fi
+
   if [[ -n "$dev_model" && "$dev_model" != "default" ]]; then
-    dev_base="claude --model $dev_model || claude"
+    dev_cmd="claude --model $dev_model $dev_prompt_arg || claude $dev_prompt_arg"
   else
-    dev_base="claude"
+    dev_cmd="claude $dev_prompt_arg"
   fi
 
   if [[ -n "$reviewer_model" && "$reviewer_model" != "default" ]]; then
-    reviewer_base="claude --model $reviewer_model || claude"
+    reviewer_cmd="claude --model $reviewer_model $reviewer_prompt_arg || claude $reviewer_prompt_arg"
   else
-    reviewer_base="claude"
-  fi
-
-  if [[ -n "$dev_prompt" && -f "$dev_prompt" ]]; then
-    dev_cmd="$dev_base \"@$dev_prompt\""
-  else
-    dev_cmd="$dev_base"
-  fi
-
-  if [[ -n "$reviewer_prompt" && -f "$reviewer_prompt" ]]; then
-    reviewer_cmd="$reviewer_base \"@$reviewer_prompt\""
-  else
-    reviewer_cmd="$reviewer_base"
+    reviewer_cmd="claude $reviewer_prompt_arg"
   fi
 
   local opened=false
