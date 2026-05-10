@@ -14,6 +14,10 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 
 # /dual-dev — 双人开发工作流
 
+**【语言约束】本 skill 执行过程中，主窗口（当前 Claude Code 会话）及自动打开的开发者/审查者终端窗口，全程必须使用中文进行对话和说明。代码、命令、文件路径保持原样，其余所有输出必须是中文。**
+
+---
+
 ## 安全约束（执行前必读）
 
 **以下操作在整个 skill 执行过程中绝对禁止，无需用户额外确认：**

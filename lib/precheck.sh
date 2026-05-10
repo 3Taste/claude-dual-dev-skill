@@ -3,7 +3,17 @@ set -euo pipefail
 
 check_git_repo() {
   if ! git rev-parse --git-dir > /dev/null 2>&1; then
-    echo "[dual-dev] 错误：请在 git 项目根目录下运行 /dual-dev" >&2
+    echo "" >&2
+    echo "╔══════════════════════════════════════════════════════╗" >&2
+    echo "║  [dual-dev] 当前目录不是 git 仓库                   ║" >&2
+    echo "╠══════════════════════════════════════════════════════╣" >&2
+    echo "║  /dual-dev 需要在 git 项目根目录下运行。            ║" >&2
+    echo "║                                                      ║" >&2
+    echo "║  解决方法：                                          ║" >&2
+    echo "║    1. cd 到你的项目目录后重新运行                   ║" >&2
+    echo "║    2. 或先初始化：git init && git add . && git commit║" >&2
+    echo "╚══════════════════════════════════════════════════════╝" >&2
+    echo "" >&2
     exit 1
   fi
 }
