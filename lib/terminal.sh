@@ -108,28 +108,16 @@ open_dev_and_reviewer_windows() {
   local reviewer_prompt="$5"
   local terminal_app="${6:-ghostty}"   # ghostty | terminal
 
-  local dev_cmd reviewer_cmd
+  # 生成包装脚本：先验证模型可用性再启动，fallback 到默认模型
+  local dev_script="$worktree_path/.claude/launch-developer.sh"
+  local reviewer_script="$worktree_path/.claude/launch-reviewer.sh"
 
-  # 构建完整命令：模型失败时整体 fallback，@prompt 在两侧都存在
-  local dev_prompt_arg="" reviewer_prompt_arg=""
-  if [[ -n "$dev_prompt" && -f "$dev_prompt" ]]; then
-    dev_prompt_arg="\"@$dev_prompt\""
-  fi
-  if [[ -n "$reviewer_prompt" && -f "$reviewer_prompt" ]]; then
-    reviewer_prompt_arg="\"@$reviewer_prompt\""
-  fi
+  _write_launch_script "$dev_script" "$dev_model" "$dev_prompt"
+  _write_launch_script "$reviewer_script" "$reviewer_model" "$reviewer_prompt"
+  chmod +x "$dev_script" "$reviewer_script"
 
-  if [[ -n "$dev_model" && "$dev_model" != "default" ]]; then
-    dev_cmd="claude --model $dev_model $dev_prompt_arg || claude $dev_prompt_arg"
-  else
-    dev_cmd="claude $dev_prompt_arg"
-  fi
-
-  if [[ -n "$reviewer_model" && "$reviewer_model" != "default" ]]; then
-    reviewer_cmd="claude --model $reviewer_model $reviewer_prompt_arg || claude $reviewer_prompt_arg"
-  else
-    reviewer_cmd="claude $reviewer_prompt_arg"
-  fi
+  local dev_cmd="bash \"$dev_script\""
+  local reviewer_cmd="bash \"$reviewer_script\""
 
   local opened=false
 
@@ -154,4 +142,31 @@ open_dev_and_reviewer_windows() {
   else
     return 1
   fi
+}
+
+_write_launch_script() {
+  local script_path="$1"
+  local model="$2"
+  local prompt="$3"
+
+  local prompt_arg=""
+  [[ -n "$prompt" ]] && prompt_arg="\"@$prompt\""
+
+  cat > "$script_path" <<SCRIPT
+#!/usr/bin/env bash
+# 由 dual-dev bootstrap 自动生成，勿手动修改
+PROMPT_ARG=${prompt_arg}
+
+if [[ -n "$model" && "$model" != "default" ]]; then
+  # 探测模型是否可用（--print 模式无副作用）
+  if echo "" | claude --model "$model" --print 2>/dev/null | head -1 > /dev/null 2>&1; then
+    exec claude --model "$model" \$PROMPT_ARG
+  else
+    echo "[dual-dev] 模型 $model 不可用，使用默认模型"
+    exec claude \$PROMPT_ARG
+  fi
+else
+  exec claude \$PROMPT_ARG
+fi
+SCRIPT
 }

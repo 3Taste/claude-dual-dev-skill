@@ -28,13 +28,15 @@
 - 读模块文档，必要时用 planner agent 出方案，无歧义则直接实现
 - 遵守所有规范：Javadoc 驱动 API 文档、租户拦截器、基础数据追踪、快照、DDL 同步
 
-### Step 2 — 编译
+### Step 2 — 编译（有构建命令才跑）
+
+若 `{{BUILD_COMMAND}}` 不为空：
 
 ```bash
-mvn clean compile -P dev
+{{BUILD_COMMAND}}
 ```
 
-零错误才可继续，否则修复后重跑。
+零错误才可继续，否则修复后重跑。若无构建命令跳过此步。
 
 ### Step 3 — 测试（有测试才跑）
 

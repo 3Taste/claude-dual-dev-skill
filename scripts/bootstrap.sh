@@ -27,6 +27,7 @@ usage() {
   --dev-prompt-path PATH       开发者自定义提示词路径（可为空，默认用内置模板）
   --reviewer-prompt-path PATH  审查者自定义提示词路径（可为空，默认用内置模板）
   --terminal ghostty|terminal  终端选择（可为空，默认 ghostty；不可用时自动回退）
+  --build-command CMD          编译命令（可为空，例如 "mvn clean compile -P dev"）
   -h, --help                   显示此帮助
 
 示例:
@@ -53,6 +54,7 @@ parse_args() {
   DEV_PROMPT_PATH=""
   REVIEWER_PROMPT_PATH=""
   TERMINAL_APP="ghostty"
+  BUILD_COMMAND=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -66,6 +68,7 @@ parse_args() {
       --dev-prompt-path)      DEV_PROMPT_PATH="$2";         shift 2 ;;
       --reviewer-prompt-path) REVIEWER_PROMPT_PATH="$2";    shift 2 ;;
       --terminal)             TERMINAL_APP="$2";            shift 2 ;;
+      --build-command)        BUILD_COMMAND="$2";            shift 2 ;;
       -h|--help)              usage ;;
       *)
         echo "[dual-dev] 未知参数: $1" >&2
@@ -113,6 +116,7 @@ main() {
   echo "  开发模型  : $DEV_MODEL"
   echo "  审查模型  : $REVIEWER_MODEL"
   echo "  终端      : $TERMINAL_APP"
+  [[ -n "$BUILD_COMMAND" ]]        && echo "  编译命令  : $BUILD_COMMAND"
   [[ -n "$DESIGN_DOCS" ]]          && echo "  设计文档  : $DESIGN_DOCS"
   [[ -n "$DEV_PROMPT_PATH" ]]      && echo "  开发提示词: $DEV_PROMPT_PATH (自定义)"
   [[ -n "$REVIEWER_PROMPT_PATH" ]] && echo "  审查提示词: $REVIEWER_PROMPT_PATH (自定义)"
@@ -172,7 +176,8 @@ main() {
       "REVIEWER_MODEL"       "$REVIEWER_MODEL" \
       "SPECIAL_REQUIREMENTS" "$SPECIAL_REQUIREMENTS" \
       "SIGNALS_DIR"          "$signals_dir" \
-      "COUNTERPART_PROMPT"   "$reviewer_prompt"
+      "COUNTERPART_PROMPT"   "$reviewer_prompt" \
+      "BUILD_COMMAND"        "$BUILD_COMMAND"
   fi
 
   # 审查者提示词：用自定义路径或内置模板
@@ -196,7 +201,8 @@ main() {
       "REVIEWER_MODEL"       "$REVIEWER_MODEL" \
       "SPECIAL_REQUIREMENTS" "$SPECIAL_REQUIREMENTS" \
       "SIGNALS_DIR"          "$signals_dir" \
-      "COUNTERPART_PROMPT"   "$dev_prompt"
+      "COUNTERPART_PROMPT"   "$dev_prompt" \
+      "BUILD_COMMAND"        "$BUILD_COMMAND"
   fi
 
   local is_macos=true
@@ -253,7 +259,8 @@ data = {
     "dev_prompt_path":       $(printf '"%s"' "$DEV_PROMPT_PATH"),
     "reviewer_prompt_path":  $(printf '"%s"' "$REVIEWER_PROMPT_PATH"),
     "special_requirements":  $(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$SPECIAL_REQUIREMENTS"),
-    "terminal":              $(printf '"%s"' "$TERMINAL_APP")
+    "terminal":              $(printf '"%s"' "$TERMINAL_APP"),
+    "build_command":         $(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$BUILD_COMMAND")
 }
 with open(path, 'w', encoding='utf-8') as f:
     json.dump(data, f, ensure_ascii=False, indent=2)

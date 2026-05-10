@@ -39,11 +39,11 @@ write_worktree_settings() {
   local signals_dir="$worktree_path/.claude/signals"
 
   # 预授权 signals 目录的 rm 操作，避免每次都弹确认框
-  python3 - "$settings_file" "$signals_dir" <<'PYEOF'
+  # 用相对路径 glob（不含绝对路径），跨用户跨机器均有效
+  python3 - "$settings_file" <<'PYEOF'
 import json, sys, os
 
 settings_file = sys.argv[1]
-signals_dir = sys.argv[2]
 
 if os.path.exists(settings_file):
     with open(settings_file, 'r', encoding='utf-8') as f:
@@ -54,9 +54,13 @@ else:
 permissions = data.setdefault("permissions", {})
 allow_list = permissions.setdefault("allow", [])
 
-rule = f"Bash(rm {signals_dir}/review-*.md)"
-if rule not in allow_list:
-    allow_list.append(rule)
+rules = [
+    "Bash(rm .claude/signals/review-*.md)",
+    "Bash(rm .*/signals/review-*.md)",
+]
+for rule in rules:
+    if rule not in allow_list:
+        allow_list.append(rule)
 
 with open(settings_file, 'w', encoding='utf-8') as f:
     json.dump(data, f, ensure_ascii=False, indent=2)

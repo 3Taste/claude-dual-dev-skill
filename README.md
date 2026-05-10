@@ -76,6 +76,7 @@ git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git .claude/
    - Q3：Claude 模型选择
    - Q4：提示词来源（内置默认模板 或 自定义文件）
    - Q5：特殊要求
+   - Q5.5：编译/构建命令（mvn / gradle / 自定义 / 无）
    - Q6：终端选择（Ghostty 推荐 / Terminal.app）
 4. **再次使用**：skill 检测到上次配置缓存（`.claude/dual-dev-defaults.json`），只需回答 Q1、Q2，其余配置自动沿用。如需重新配置可选择走完整流程。
 5. 两个终端窗口自动打开，**提示词自动注入 Claude，无需手动操作**
@@ -111,6 +112,16 @@ claude --model <reviewer-model> "@<worktree>/.claude/dual-dev-reviewer-prompt.md
 > **Linux / Windows 用户**：osascript 不可用时，bootstrap.sh 会打印上述命令，手动在两个终端中执行即可。
 
 ### 完成后清理
+
+在 Claude Code 中运行（推荐）：
+
+```
+/dual-dev-cleanup
+```
+
+交互式选择 worktree，自动清理目录、信号文件，并安全删除本地分支。
+
+或手动清理：
 
 ```bash
 git worktree remove "<worktree-path>"

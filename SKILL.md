@@ -63,27 +63,41 @@ git rev-parse --show-toplevel
   2. 重新配置（走完整 6 步流程）
 ```
 
-- 选 1：从 JSON 提取 `DEV_MODEL`、`REVIEWER_MODEL`、`DEV_PROMPT_PATH`、`REVIEWER_PROMPT_PATH`、`SPECIAL_REQUIREMENTS`、`TERMINAL_APP`，跳过 Q3～Q6
+- 选 1：从 JSON 提取 `DEV_MODEL`、`REVIEWER_MODEL`、`DEV_PROMPT_PATH`、`REVIEWER_PROMPT_PATH`、`SPECIAL_REQUIREMENTS`、`TERMINAL_APP`、`BUILD_COMMAND`，跳过 Q3～Q6
 - 选 2 / 文件不存在：走完整流程
 
 ---
 
 ### Q1：工作区路径 & 分支名
 
-先用 Bash 获取当前分支名：`git branch --show-current`
+先用 Bash 获取以下信息并计算推荐默认值：
 
-用 `AskUserQuestion` 询问（自由文本，用户在 Other 中输入）：
+```bash
+git branch --show-current        # 当前分支名 → BASE_BRANCH 默认值
+basename $(git rev-parse --show-toplevel)  # 项目名 → worktree 路径推荐
+```
+
+根据项目名和当前分支推算推荐值：
+- 推荐 worktree 路径：`~/git/<项目名>-dev`
+- 推荐分支名：`feature/dev`（或 `dev/<当前分支名>`）
+- 推荐基础分支：当前分支名
+
+用 `AskUserQuestion` 询问，**选项中直接列出推荐值**，用户可直接选或自定义：
 
 ```
-问题：请填写工作区信息（三项用换行或空格分隔均可）：
-  1. worktree 路径（示例：~/git/<项目名>-feature）
-  2. 新建分支名（示例：feature/new-api）
-  3. 基础分支（当前分支：<current_branch>）
+问题：请确认工作区配置（推荐值已预填，可直接选或在 Other 中自定义）：
 选项：
-  Other（用户自行输入）
+  1. 使用推荐配置：
+     路径: ~/git/<项目名>-dev
+     分支: feature/dev
+     基于: <current_branch>
+  2. 自定义（在 Other 中按格式输入：路径 分支名 基础分支）
 ```
 
-解析用户输入，提取 `WORKTREE_PATH`、`BRANCH_NAME`、`BASE_BRANCH`。
+- 选 1 → 直接使用推荐值
+- 选 2（Other）→ 解析用户输入，按空格或换行分割提取三个值
+
+提取 `WORKTREE_PATH`、`BRANCH_NAME`、`BASE_BRANCH`。
 
 ---
 
@@ -205,6 +219,26 @@ git rev-parse --show-toplevel
 
 ---
 
+### Q5.5：编译命令
+
+用 `AskUserQuestion` 询问：
+
+```
+问题：项目的编译/构建命令是什么？（用于开发者编译验证和审查者构建校验）
+选项：
+  1. 无（纯脚本/解释型语言项目，跳过编译步骤）
+  2. Maven：mvn clean compile -P dev
+  3. Gradle：./gradlew build
+  4. 其他（请在 Other 中输入完整命令）
+```
+
+- 选 1 → `BUILD_COMMAND=""`
+- 选 2 → `BUILD_COMMAND="mvn clean compile -P dev"`
+- 选 3 → `BUILD_COMMAND="./gradlew build"`
+- 选 4（Other）→ 提取用户输入
+
+---
+
 ### Q6：终端选择
 
 用 `AskUserQuestion` 询问：
@@ -237,7 +271,8 @@ bash "$SKILL_DIR/scripts/bootstrap.sh" \
   --special-requirements "<SPECIAL_REQUIREMENTS>" \
   --dev-prompt-path "<DEV_PROMPT_PATH>" \
   --reviewer-prompt-path "<REVIEWER_PROMPT_PATH>" \
-  --terminal "<TERMINAL_APP>"
+  --terminal "<TERMINAL_APP>" \
+  --build-command "<BUILD_COMMAND>"
 ```
 
 `DEV_PROMPT_PATH` 和 `REVIEWER_PROMPT_PATH` 为空时省略对应参数。

@@ -16,7 +16,12 @@
 
 # 启动
 
-立刻建立一个 CronCreate 每分钟定时任务（`recurring: true`），触发本工作循环。不要主动删除该定时任务，只有用户说"停止轮询"时才调用 CronDelete。
+**启动前先检查是否已有轮询任务（幂等保护）：**
+1. 调用 `CronList` 查看当前定时任务
+2. 若已存在 prompt 包含 `dual-dev` 或 `signals` 关键词的任务 → 直接复用，不重复创建
+3. 若不存在 → 立刻建立一个 CronCreate 每分钟定时任务（`recurring: true`），触发本工作循环
+
+不要主动删除该定时任务，只有用户说"停止轮询"时才调用 CronDelete。
 
 ---
 
@@ -52,14 +57,17 @@ git rev-parse HEAD
 
 若 HEAD ≠ ready 文件中的 commit hash，写入 review 文件标记错误，停止本次审查。
 
-### c. 编译
+### c. 编译验证（可选）
+
+若项目有构建命令（`{{BUILD_COMMAND}}`），执行并检查退出码：
 
 ```bash
-mvn clean compile -P dev 2>&1; echo "EXIT:$?"
+{{BUILD_COMMAND}} 2>&1; echo "EXIT:$?"
 ```
 
 - `EXIT:0` → 继续
 - 非零 → 直接写 `verdict: FAIL`，blockers 注明"编译失败"，停止
+- `{{BUILD_COMMAND}}` 为空或"无" → 跳过此步骤，直接进入 diff 审查
 
 ### d. 读取 diff
 
