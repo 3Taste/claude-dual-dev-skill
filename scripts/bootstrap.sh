@@ -24,6 +24,8 @@ usage() {
   --dev-model MODEL            开发者窗口模型（可为空，默认 claude-sonnet-4-6）
   --reviewer-model MODEL       审查者窗口模型（可为空，默认 claude-sonnet-4-6）
   --special-requirements TEXT  特殊要求（可为空）
+  --dev-prompt-path PATH       开发者自定义提示词路径（可为空，默认用内置模板）
+  --reviewer-prompt-path PATH  审查者自定义提示词路径（可为空，默认用内置模板）
   -h, --help                   显示此帮助
 
 示例:
@@ -47,17 +49,21 @@ parse_args() {
   DEV_MODEL="claude-sonnet-4-6"
   REVIEWER_MODEL="claude-sonnet-4-6"
   SPECIAL_REQUIREMENTS=""
+  DEV_PROMPT_PATH=""
+  REVIEWER_PROMPT_PATH=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --worktree-path)   WORKTREE_PATH="$2";          shift 2 ;;
-      --branch-name)     BRANCH_NAME="$2";             shift 2 ;;
-      --base-branch)     BASE_BRANCH="$2";             shift 2 ;;
-      --design-docs)     DESIGN_DOCS="$2";             shift 2 ;;
-      --dev-model)       DEV_MODEL="$2";               shift 2 ;;
-      --reviewer-model)  REVIEWER_MODEL="$2";          shift 2 ;;
-      --special-requirements) SPECIAL_REQUIREMENTS="$2"; shift 2 ;;
-      -h|--help)         usage ;;
+      --worktree-path)        WORKTREE_PATH="$2";          shift 2 ;;
+      --branch-name)          BRANCH_NAME="$2";             shift 2 ;;
+      --base-branch)          BASE_BRANCH="$2";             shift 2 ;;
+      --design-docs)          DESIGN_DOCS="$2";             shift 2 ;;
+      --dev-model)            DEV_MODEL="$2";               shift 2 ;;
+      --reviewer-model)       REVIEWER_MODEL="$2";          shift 2 ;;
+      --special-requirements) SPECIAL_REQUIREMENTS="$2";    shift 2 ;;
+      --dev-prompt-path)      DEV_PROMPT_PATH="$2";         shift 2 ;;
+      --reviewer-prompt-path) REVIEWER_PROMPT_PATH="$2";    shift 2 ;;
+      -h|--help)              usage ;;
       *)
         echo "[dual-dev] 未知参数: $1" >&2
         usage
@@ -70,11 +76,10 @@ parse_args() {
     usage
   fi
 
-  # 展开 ~ 路径
   WORKTREE_PATH="${WORKTREE_PATH/#\~/$HOME}"
-
-  # 模型为空时使用默认值
-  [[ -z "$DEV_MODEL" ]] && DEV_MODEL="claude-sonnet-4-6"
+  [[ -n "$DEV_PROMPT_PATH" ]]      && DEV_PROMPT_PATH="${DEV_PROMPT_PATH/#\~/$HOME}"
+  [[ -n "$REVIEWER_PROMPT_PATH" ]] && REVIEWER_PROMPT_PATH="${REVIEWER_PROMPT_PATH/#\~/$HOME}"
+  [[ -z "$DEV_MODEL" ]]      && DEV_MODEL="claude-sonnet-4-6"
   [[ -z "$REVIEWER_MODEL" ]] && REVIEWER_MODEL="claude-sonnet-4-6"
 }
 
@@ -89,7 +94,6 @@ main() {
   local dev_prompt="$WORKTREE_PATH/.claude/dual-dev-developer-prompt.md"
   local reviewer_prompt="$WORKTREE_PATH/.claude/dual-dev-reviewer-prompt.md"
 
-  # 回滚处理：任意步骤失败时清理
   local worktree_created=false
   trap '[[ "$worktree_created" == "true" ]] && rollback "$WORKTREE_PATH" "$BRANCH_NAME"' ERR
 
@@ -99,53 +103,70 @@ main() {
   echo "  分支      : $BRANCH_NAME (基于 $BASE_BRANCH)"
   echo "  开发模型  : $DEV_MODEL"
   echo "  审查模型  : $REVIEWER_MODEL"
-  [[ -n "$DESIGN_DOCS" ]] && echo "  设计文档  : $DESIGN_DOCS"
+  [[ -n "$DESIGN_DOCS" ]]          && echo "  设计文档  : $DESIGN_DOCS"
+  [[ -n "$DEV_PROMPT_PATH" ]]      && echo "  开发提示词: $DEV_PROMPT_PATH (自定义)"
+  [[ -n "$REVIEWER_PROMPT_PATH" ]] && echo "  审查提示词: $REVIEWER_PROMPT_PATH (自定义)"
   [[ -n "$SPECIAL_REQUIREMENTS" ]] && echo "  特殊要求  : $SPECIAL_REQUIREMENTS"
   echo "==========================="
   echo ""
 
-  # Step 1: 预检
   run_prechecks "$WORKTREE_PATH" "$BRANCH_NAME"
 
-  # Step 2: 创建 worktree
   create_worktree "$WORKTREE_PATH" "$BRANCH_NAME" "$BASE_BRANCH"
   worktree_created=true
 
-  # Step 3: 创建 .claude 目录和信号目录
   setup_claude_dir "$WORKTREE_PATH"
   setup_signals "$WORKTREE_PATH"
   add_gitignore "$WORKTREE_PATH"
 
-  # Step 4: 渲染提示词模板
-  render_template \
-    "$TEMPLATES_DIR/dual-dev-developer-prompt.md" \
-    "$dev_prompt" \
-    "ROLE"                 "developer" \
-    "BASE_BRANCH"          "$BASE_BRANCH" \
-    "BRANCH_NAME"          "$BRANCH_NAME" \
-    "WORKTREE_PATH"        "$WORKTREE_PATH" \
-    "DESIGN_DOCS"          "$DESIGN_DOCS" \
-    "DEV_MODEL"            "$DEV_MODEL" \
-    "REVIEWER_MODEL"       "$REVIEWER_MODEL" \
-    "SPECIAL_REQUIREMENTS" "$SPECIAL_REQUIREMENTS" \
-    "SIGNALS_DIR"          "$signals_dir" \
-    "COUNTERPART_PROMPT"   "$reviewer_prompt"
+  # 开发者提示词：用自定义路径或内置模板
+  if [[ -n "$DEV_PROMPT_PATH" ]]; then
+    if [[ ! -f "$DEV_PROMPT_PATH" ]]; then
+      echo "[dual-dev] 错误：自定义开发者提示词不存在：$DEV_PROMPT_PATH" >&2
+      exit 1
+    fi
+    cp "$DEV_PROMPT_PATH" "$dev_prompt"
+    echo "[dual-dev] 使用自定义开发者提示词：$DEV_PROMPT_PATH"
+  else
+    render_template \
+      "$TEMPLATES_DIR/dual-dev-developer-prompt.md" \
+      "$dev_prompt" \
+      "ROLE"                 "developer" \
+      "BASE_BRANCH"          "$BASE_BRANCH" \
+      "BRANCH_NAME"          "$BRANCH_NAME" \
+      "WORKTREE_PATH"        "$WORKTREE_PATH" \
+      "DESIGN_DOCS"          "$DESIGN_DOCS" \
+      "DEV_MODEL"            "$DEV_MODEL" \
+      "REVIEWER_MODEL"       "$REVIEWER_MODEL" \
+      "SPECIAL_REQUIREMENTS" "$SPECIAL_REQUIREMENTS" \
+      "SIGNALS_DIR"          "$signals_dir" \
+      "COUNTERPART_PROMPT"   "$reviewer_prompt"
+  fi
 
-  render_template \
-    "$TEMPLATES_DIR/dual-dev-reviewer-prompt.md" \
-    "$reviewer_prompt" \
-    "ROLE"                 "reviewer" \
-    "BASE_BRANCH"          "$BASE_BRANCH" \
-    "BRANCH_NAME"          "$BRANCH_NAME" \
-    "WORKTREE_PATH"        "$WORKTREE_PATH" \
-    "DESIGN_DOCS"          "$DESIGN_DOCS" \
-    "DEV_MODEL"            "$DEV_MODEL" \
-    "REVIEWER_MODEL"       "$REVIEWER_MODEL" \
-    "SPECIAL_REQUIREMENTS" "$SPECIAL_REQUIREMENTS" \
-    "SIGNALS_DIR"          "$signals_dir" \
-    "COUNTERPART_PROMPT"   "$dev_prompt"
+  # 审查者提示词：用自定义路径或内置模板
+  if [[ -n "$REVIEWER_PROMPT_PATH" ]]; then
+    if [[ ! -f "$REVIEWER_PROMPT_PATH" ]]; then
+      echo "[dual-dev] 错误：自定义审查者提示词不存在：$REVIEWER_PROMPT_PATH" >&2
+      exit 1
+    fi
+    cp "$REVIEWER_PROMPT_PATH" "$reviewer_prompt"
+    echo "[dual-dev] 使用自定义审查者提示词：$REVIEWER_PROMPT_PATH"
+  else
+    render_template \
+      "$TEMPLATES_DIR/dual-dev-reviewer-prompt.md" \
+      "$reviewer_prompt" \
+      "ROLE"                 "reviewer" \
+      "BASE_BRANCH"          "$BASE_BRANCH" \
+      "BRANCH_NAME"          "$BRANCH_NAME" \
+      "WORKTREE_PATH"        "$WORKTREE_PATH" \
+      "DESIGN_DOCS"          "$DESIGN_DOCS" \
+      "DEV_MODEL"            "$DEV_MODEL" \
+      "REVIEWER_MODEL"       "$REVIEWER_MODEL" \
+      "SPECIAL_REQUIREMENTS" "$SPECIAL_REQUIREMENTS" \
+      "SIGNALS_DIR"          "$signals_dir" \
+      "COUNTERPART_PROMPT"   "$dev_prompt"
+  fi
 
-  # Step 5: 打开终端窗口（macOS only）
   local is_macos=true
   check_macos || is_macos=false
 
@@ -158,13 +179,16 @@ main() {
       "$reviewer_prompt"
   fi
 
-  # 成功提示
   echo ""
   echo "====== dual-dev 启动成功 ======"
   echo ""
-  echo "下一步："
-  echo "  1. 开发者窗口：在 Claude 中执行 @$dev_prompt 加载提示词"
-  echo "  2. 审查者窗口：在 Claude 中执行 @$reviewer_prompt 加载提示词"
+  if [[ "$is_macos" == "true" ]]; then
+    echo "两个终端窗口已自动打开，提示词已注入，Claude 正在初始化。"
+  else
+    echo "请手动打开两个终端，cd 到 $WORKTREE_PATH，分别运行："
+    echo "  开发者: claude \"@$dev_prompt\""
+    echo "  审查者: claude \"@$reviewer_prompt\""
+  fi
   echo ""
   echo "信号文件目录：$signals_dir"
   echo ""

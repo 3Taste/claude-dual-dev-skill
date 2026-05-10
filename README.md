@@ -83,24 +83,31 @@ ls ~/.claude/skills/dual-dev/SKILL.md
 
 1. 进入任意 git 项目根目录
 2. 在 Claude Code 中输入 `/dual-dev`
-3. 按提示完成 4 步配置：
+3. 按提示完成 5 步配置：
    - Q1：worktree 路径、分支名、基础分支
    - Q2：设计文档路径（skill 会自动校验并整理模块清单）
    - Q3：Claude 模型选择
-   - Q4：特殊要求
-4. 两个终端窗口自动打开，分别在 Claude 中加载对应角色提示词
+   - Q4：提示词来源（内置默认模板 或 自定义文件）
+   - Q5：特殊要求
+4. 两个终端窗口自动打开，**提示词自动注入 Claude，无需手动操作**
 
-### 提示词加载方式
+### 提示词加载行为
 
-窗口打开后，在 Claude 中执行：
+**默认模板**（Q4 选 1）：bootstrap.sh 将 `templates/` 下的模板渲染（替换所有占位符）后存入 worktree，启动 Claude 时以 `@<path>` 方式自动加载。
 
+**自定义提示词**（Q4 选 2）：直接使用用户指定的文件，原样复制到 worktree，同样自动加载。
+
+两种方式下终端窗口启动命令均为：
+
+```bash
+# 开发者窗口（bootstrap.sh 自动执行）
+claude --model <dev-model> "@<worktree>/.claude/dual-dev-developer-prompt.md"
+
+# 审查者窗口（bootstrap.sh 自动执行）
+claude --model <reviewer-model> "@<worktree>/.claude/dual-dev-reviewer-prompt.md"
 ```
-# 开发者窗口
-@<worktree>/.claude/dual-dev-developer-prompt.md
 
-# 审查者窗口
-@<worktree>/.claude/dual-dev-reviewer-prompt.md
-```
+> **Linux / Windows 用户**：osascript 不可用时，bootstrap.sh 会打印上述命令，手动在两个终端中执行即可。
 
 ### 完成后清理
 

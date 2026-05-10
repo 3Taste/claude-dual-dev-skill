@@ -123,7 +123,26 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 
 ---
 
-### Q4：特殊要求
+### Q4：提示词选择
+
+询问：
+
+> 请选择角色提示词来源：
+> 1. **使用内置默认模板**（推荐）— skill 自动根据设计文档和参数渲染提示词
+> 2. **使用自定义提示词** — 我已准备好自己的提示词文件
+>
+> 选 2 请分别提供开发者和审查者提示词的文件路径。
+
+**若选 1**：`DEV_PROMPT_PATH=""` / `REVIEWER_PROMPT_PATH=""`（使用内置模板）
+
+**若选 2**：
+- 询问开发者提示词路径，用 Read 工具校验文件存在
+- 询问审查者提示词路径，用 Read 工具校验文件存在
+- 提取 `DEV_PROMPT_PATH` 和 `REVIEWER_PROMPT_PATH`
+
+---
+
+### Q5：特殊要求
 
 询问：
 
@@ -160,7 +179,11 @@ bash "$SKILL_DIR/scripts/bootstrap.sh" \
   --design-docs "<DESIGN_DOCS>" \
   --dev-model "<DEV_MODEL>" \
   --reviewer-model "<REVIEWER_MODEL>" \
-  --special-requirements "<SPECIAL_REQUIREMENTS>"
+  --special-requirements "<SPECIAL_REQUIREMENTS>" \
+  --dev-prompt-path "<DEV_PROMPT_PATH>" \
+  --reviewer-prompt-path "<REVIEWER_PROMPT_PATH>"
 ```
+
+`DEV_PROMPT_PATH` 和 `REVIEWER_PROMPT_PATH` 为空时省略对应参数。
 
 等待脚本输出，将结果反馈给用户。

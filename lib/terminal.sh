@@ -28,27 +28,41 @@ open_dev_and_reviewer_windows() {
   local dev_prompt="$4"
   local reviewer_prompt="$5"
 
-  local dev_cmd reviewer_cmd
+  local dev_base reviewer_base
 
   if [[ -n "$dev_model" && "$dev_model" != "default" ]]; then
-    dev_cmd="claude --model $dev_model"
+    dev_base="claude --model $dev_model"
   else
-    dev_cmd="claude"
+    dev_base="claude"
   fi
 
   if [[ -n "$reviewer_model" && "$reviewer_model" != "default" ]]; then
-    reviewer_cmd="claude --model $reviewer_model"
+    reviewer_base="claude --model $reviewer_model"
   else
-    reviewer_cmd="claude"
+    reviewer_base="claude"
   fi
 
-  echo "[dual-dev] 打开开发者终端窗口..."
+  # 传入提示词文件路径作为初始消息，Claude Code 启动后自动加载
+  local dev_cmd reviewer_cmd
+  if [[ -n "$dev_prompt" && -f "$dev_prompt" ]]; then
+    dev_cmd="$dev_base \"@$dev_prompt\""
+  else
+    dev_cmd="$dev_base"
+  fi
+
+  if [[ -n "$reviewer_prompt" && -f "$reviewer_prompt" ]]; then
+    reviewer_cmd="$reviewer_base \"@$reviewer_prompt\""
+  else
+    reviewer_cmd="$reviewer_base"
+  fi
+
+  echo "[dual-dev] 打开开发者终端窗口（自动加载提示词）..."
   open_terminal_window "dual-dev: Developer" "$worktree_path" "$dev_cmd"
 
   sleep 0.5
 
-  echo "[dual-dev] 打开审查者终端窗口..."
+  echo "[dual-dev] 打开审查者终端窗口（自动加载提示词）..."
   open_terminal_window "dual-dev: Reviewer" "$worktree_path" "$reviewer_cmd"
 
-  echo "[dual-dev] 两个终端窗口已打开"
+  echo "[dual-dev] 两个终端窗口已打开，提示词自动注入"
 }
