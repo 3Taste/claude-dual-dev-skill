@@ -129,6 +129,27 @@ main() {
   setup_signals "$WORKTREE_PATH"
   add_gitignore "$WORKTREE_PATH"
 
+  # 同步设计文档：worktree 基于 base branch 不含未提交文件，需从主目录复制
+  if [[ -n "$DESIGN_DOCS" ]]; then
+    local repo_root
+    repo_root="$(git rev-parse --show-toplevel)"
+    for doc in $DESIGN_DOCS; do
+      # 支持绝对路径和相对路径（相对于主仓库根目录）
+      local src_path="$doc"
+      [[ "$doc" != /* ]] && src_path="$repo_root/$doc"
+
+      if [[ -f "$src_path" ]]; then
+        local dest_path="$WORKTREE_PATH/$doc"
+        [[ "$doc" == /* ]] && dest_path="$WORKTREE_PATH/$(basename "$doc")"
+        mkdir -p "$(dirname "$dest_path")"
+        cp "$src_path" "$dest_path"
+        echo "[dual-dev] 已同步设计文档：$doc → worktree"
+      else
+        echo "[dual-dev] 警告：设计文档不存在，跳过同步：$src_path" >&2
+      fi
+    done
+  fi
+
   # 开发者提示词：用自定义路径或内置模板
   if [[ -n "$DEV_PROMPT_PATH" ]]; then
     if [[ ! -f "$DEV_PROMPT_PATH" ]]; then
