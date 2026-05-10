@@ -157,14 +157,13 @@ _write_launch_script() {
 # 由 dual-dev bootstrap 自动生成，勿手动修改
 PROMPT_ARG=${prompt_arg}
 
+if ! command -v claude > /dev/null 2>&1; then
+  echo "[dual-dev] 错误：未找到 claude 命令，请先安装 Claude Code CLI"
+  exit 1
+fi
+
 if [[ -n "$model" && "$model" != "default" ]]; then
-  # 探测模型是否可用（--print 模式无副作用）
-  if echo "" | claude --model "$model" --print 2>/dev/null | head -1 > /dev/null 2>&1; then
-    exec claude --model "$model" \$PROMPT_ARG
-  else
-    echo "[dual-dev] 模型 $model 不可用，使用默认模型"
-    exec claude \$PROMPT_ARG
-  fi
+  exec claude --model "$model" \$PROMPT_ARG
 else
   exec claude \$PROMPT_ARG
 fi
