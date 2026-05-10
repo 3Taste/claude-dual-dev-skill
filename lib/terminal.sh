@@ -8,16 +8,14 @@ _open_ghostty_window() {
   local cd_path="$2"
   local cmd="$3"
 
+  # 用 initial input 在窗口创建时直接注入命令（最干净，无需 delay）
   osascript <<APPLESCRIPT 2>/dev/null
 tell application "Ghostty"
   activate
   set cfg to new surface configuration
   set initial working directory of cfg to $(printf '"%s"' "$cd_path")
+  set initial input of cfg to $(printf '"%s\n"' "$cmd")
   set win to new window with configuration cfg
-  delay 0.5
-  set t to terminal 1 of selected tab of win
-  input text $(printf '"%s\n"' "$cmd") to t
-  send t
 end tell
 APPLESCRIPT
 }
