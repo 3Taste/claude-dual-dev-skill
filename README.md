@@ -66,42 +66,6 @@ git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git .claude/
 
 ---
 
-## 安装
-
-> 详见 [docs/INSTALL.md](docs/INSTALL.md) — 包含 AI Agent 自动安装引导、环境检查和常见问题。
-
-### 全局安装（推荐）
-
-```bash
-git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git ~/.claude/skills/dual-dev
-```
-
-### 一键脚本
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/3Taste/claude-dual-dev-skill/main/install.sh | bash
-```
-
-### 项目级安装
-
-```bash
-git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git .claude/skills/dual-dev
-```
-
----
-
-## 安装验证
-
-```bash
-# 检查文件是否就位
-ls ~/.claude/skills/dual-dev/SKILL.md
-
-# 在 Claude Code 中验证（在任意 git 项目中运行）
-/dual-dev
-```
-
----
-
 ## 使用方法
 
 1. 进入任意 git 项目根目录
