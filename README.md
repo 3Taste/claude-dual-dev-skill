@@ -106,12 +106,13 @@ ls ~/.claude/skills/dual-dev/SKILL.md
 
 1. 进入任意 git 项目根目录
 2. 在 Claude Code 中输入 `/dual-dev`
-3. 按提示完成 5 步配置：
+3. 按提示完成 6 步配置：
    - Q1：worktree 路径、分支名、基础分支
-   - Q2：设计文档路径（skill 会自动校验并整理模块清单）
+   - Q2：设计文档路径（skill 会自动校验并整理模块清单；或直接描述需求由 Claude 生成）
    - Q3：Claude 模型选择
    - Q4：提示词来源（内置默认模板 或 自定义文件）
    - Q5：特殊要求
+   - Q6：终端选择（Ghostty 推荐 / Terminal.app）
 4. 两个终端窗口自动打开，**提示词自动注入 Claude，无需手动操作**
 
 ### 提示词加载行为
