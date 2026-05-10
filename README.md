@@ -6,6 +6,28 @@
 
 ---
 
+## 快速开始
+
+### 🤖 通过 AI Agent 安装（推荐）
+
+最简单的方式 — 把这段话发给 Claude Code 或其他 AI 编码 Agent，它会交互式地完成整个安装和配置过程：
+
+```
+请参考 https://raw.githubusercontent.com/3Taste/claude-dual-dev-skill/main/INSTALL.md 帮我安装 dual-dev skill
+```
+
+### 📦 手动安装
+
+```bash
+# 全局安装（所有项目可用）
+git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git ~/.claude/skills/dual-dev
+
+# 项目级安装（仅当前项目可用）
+git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git .claude/skills/dual-dev
+```
+
+---
+
 ## 工作原理
 
 ```
@@ -45,24 +67,24 @@
 
 ## 安装
 
-### 方式一：一键脚本（推荐）
+> 详见 [INSTALL.md](INSTALL.md) — 包含 AI Agent 自动安装引导、环境检查和常见问题。
+
+### 全局安装（推荐）
+
+```bash
+git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git ~/.claude/skills/dual-dev
+```
+
+### 一键脚本
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/3Taste/claude-dual-dev-skill/main/install.sh | bash
 ```
 
-脚本会将 skill 安装到 `~/.claude/skills/dual-dev/`。
-
-### 方式二：手动安装
+### 项目级安装
 
 ```bash
-git clone https://github.com/3Taste/claude-dual-dev-skill.git ~/.claude/skills/dual-dev
-```
-
-### 方式三：项目级安装（仅当前项目可用）
-
-```bash
-git clone https://github.com/3Taste/claude-dual-dev-skill.git .claude/skills/dual-dev
+git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git .claude/skills/dual-dev
 ```
 
 ---
