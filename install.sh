@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_URL="https://github.com/YOUR_USERNAME/claude-dual-dev-skill.git"
+REPO_URL="https://github.com/3Taste/claude-dual-dev-skill.git"
 INSTALL_DIR="${HOME}/.claude/skills/dual-dev"
 
 echo "=== dual-dev skill 安装程序 ==="

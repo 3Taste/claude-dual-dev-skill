@@ -48,7 +48,7 @@
 ### 方式一：一键脚本（推荐）
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/claude-dual-dev-skill/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/3Taste/claude-dual-dev-skill/main/install.sh | bash
 ```
 
 脚本会将 skill 安装到 `~/.claude/skills/dual-dev/`。
@@ -56,13 +56,13 @@ curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/claude-dual-dev-skill
 ### 方式二：手动安装
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/claude-dual-dev-skill.git ~/.claude/skills/dual-dev
+git clone https://github.com/3Taste/claude-dual-dev-skill.git ~/.claude/skills/dual-dev
 ```
 
 ### 方式三：项目级安装（仅当前项目可用）
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/claude-dual-dev-skill.git .claude/skills/dual-dev
+git clone https://github.com/3Taste/claude-dual-dev-skill.git .claude/skills/dual-dev
 ```
 
 ---
