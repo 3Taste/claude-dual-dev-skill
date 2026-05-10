@@ -151,9 +151,8 @@ open_dev_and_reviewer_windows() {
 
   if [[ "$opened" == "true" ]]; then
     echo "[dual-dev] 两个终端窗口已打开，提示词自动注入"
+    return 0
   else
-    echo "[dual-dev] 警告：自动打开终端失败，请手动执行：" >&2
-    echo "  开发者: cd \"$worktree_path\" && $dev_cmd" >&2
-    echo "  审查者: cd \"$worktree_path\" && $reviewer_cmd" >&2
+    return 1
   fi
 }

@@ -178,27 +178,38 @@ main() {
   fi
 
   local is_macos=true
+  local terminal_opened=false
   check_macos || is_macos=false
 
   if [[ "$is_macos" == "true" ]]; then
-    open_dev_and_reviewer_windows \
-      "$WORKTREE_PATH" \
-      "$DEV_MODEL" \
-      "$REVIEWER_MODEL" \
-      "$dev_prompt" \
-      "$reviewer_prompt" \
-      "$TERMINAL_APP"
+    # open_dev_and_reviewer_windows 内部打印警告，通过返回码判断是否成功
+    if open_dev_and_reviewer_windows \
+        "$WORKTREE_PATH" \
+        "$DEV_MODEL" \
+        "$REVIEWER_MODEL" \
+        "$dev_prompt" \
+        "$reviewer_prompt" \
+        "$TERMINAL_APP"; then
+      terminal_opened=true
+    fi
   fi
 
   echo ""
   echo "====== dual-dev 启动成功 ======"
   echo ""
-  if [[ "$is_macos" == "true" ]]; then
+  if [[ "$terminal_opened" == "true" ]]; then
     echo "两个终端窗口已自动打开，提示词已注入，Claude 正在初始化。"
   else
-    echo "请手动打开两个终端，cd 到 $WORKTREE_PATH，分别运行："
-    echo "  开发者: claude \"@$dev_prompt\""
-    echo "  审查者: claude \"@$reviewer_prompt\""
+    echo "终端自动打开失败（需要辅助功能授权）或当前系统不支持。"
+    echo "请手动打开两个终端，分别执行："
+    echo ""
+    echo "  开发者窗口："
+    echo "    cd \"$WORKTREE_PATH\" && claude --model $DEV_MODEL || claude"
+    echo "    启动后运行：@$dev_prompt"
+    echo ""
+    echo "  审查者窗口："
+    echo "    cd \"$WORKTREE_PATH\" && claude --model $REVIEWER_MODEL || claude"
+    echo "    启动后运行：@$reviewer_prompt"
   fi
   echo ""
   echo "信号文件目录：$signals_dir"
@@ -225,7 +236,7 @@ data = {
 with open(path, 'w', encoding='utf-8') as f:
     json.dump(data, f, ensure_ascii=False, indent=2)
 PYEOF
-  echo "[dual-dev] 配置已保存：$defaults_file（下次运行 /dual-dev 可直接复用）"
+  echo "[dual-dev] 配置已保存：${defaults_file}（下次运行 /dual-dev 可直接复用）"
 }
 
 main "$@"
