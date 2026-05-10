@@ -206,6 +206,26 @@ main() {
   echo "清理 worktree（完成后）："
   echo "  git worktree remove \"$WORKTREE_PATH\" && git branch -d \"$BRANCH_NAME\""
   echo "================================"
+
+  # 保存本次配置为项目缺省值（供下次 /dual-dev 复用 Q3-Q6）
+  local defaults_file
+  defaults_file="$(git rev-parse --show-toplevel 2>/dev/null)/.claude/dual-dev-defaults.json"
+  mkdir -p "$(dirname "$defaults_file")"
+  python3 - "$defaults_file" <<PYEOF
+import json, sys
+path = sys.argv[1]
+data = {
+    "dev_model":             $(printf '"%s"' "$DEV_MODEL"),
+    "reviewer_model":        $(printf '"%s"' "$REVIEWER_MODEL"),
+    "dev_prompt_path":       $(printf '"%s"' "$DEV_PROMPT_PATH"),
+    "reviewer_prompt_path":  $(printf '"%s"' "$REVIEWER_PROMPT_PATH"),
+    "special_requirements":  $(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$SPECIAL_REQUIREMENTS"),
+    "terminal":              $(printf '"%s"' "$TERMINAL_APP")
+}
+with open(path, 'w', encoding='utf-8') as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+PYEOF
+  echo "[dual-dev] 配置已保存：$defaults_file（下次运行 /dual-dev 可直接复用）"
 }
 
 main "$@"

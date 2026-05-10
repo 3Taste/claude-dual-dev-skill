@@ -70,14 +70,27 @@ git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git .claude/
 
 1. 进入任意 git 项目根目录
 2. 在 Claude Code 中输入 `/dual-dev`
-3. 按提示完成 6 步配置：
+3. **首次使用**：按提示完成 6 步配置：
    - Q1：worktree 路径、分支名、基础分支
    - Q2：设计文档路径（skill 会自动校验并整理模块清单；或直接描述需求由 Claude 生成）
    - Q3：Claude 模型选择
    - Q4：提示词来源（内置默认模板 或 自定义文件）
    - Q5：特殊要求
    - Q6：终端选择（Ghostty 推荐 / Terminal.app）
-4. 两个终端窗口自动打开，**提示词自动注入 Claude，无需手动操作**
+4. **再次使用**：skill 检测到上次配置缓存（`.claude/dual-dev-defaults.json`），只需回答 Q1、Q2，其余配置自动沿用。如需重新配置可选择走完整流程。
+5. 两个终端窗口自动打开，**提示词自动注入 Claude，无需手动操作**
+
+> **模型 fallback**：若指定模型不存在或不可用，Claude 启动时自动降级为默认模型，不会报错退出。
+
+### 配置缓存
+
+首次运行成功后，skill 将 Q3~Q6 的配置保存至项目根目录：
+
+```
+.claude/dual-dev-defaults.json
+```
+
+下次运行 `/dual-dev` 时自动读取，只需填写新的工作区路径和功能需求即可快速启动。如需修改配置，选择"重新配置"走完整流程，配置文件会在新一次成功运行后更新。
 
 ### 提示词加载行为
 

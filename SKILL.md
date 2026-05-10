@@ -41,6 +41,35 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 
 ## 步骤
 
+### 检测缺省配置
+
+**触发 /dual-dev 后，首先检查当前 git 项目根目录下是否存在 `.claude/dual-dev-defaults.json`：**
+
+```bash
+# 用 Bash 工具执行，获取项目根目录
+git rev-parse --show-toplevel
+```
+
+若文件存在，用 Read 工具读取内容，展示给用户：
+
+> 检测到上次配置记录：
+>
+> - 开发模型：`<dev_model>`
+> - 审查模型：`<reviewer_model>`
+> - 终端：`<terminal>`
+> - 提示词：`<dev_prompt_path 或 内置模板>`
+> - 特殊要求：`<special_requirements>`
+>
+> 是否沿用以上配置？（只需回答 Q1 工作区路径和 Q2 功能需求）
+> 1. **沿用**（推荐）— 只回答 Q1、Q2，其余配置自动复用
+> 2. **重新配置** — 走完整 6 步流程
+
+**若选 1（沿用）**：从 JSON 文件中提取 `DEV_MODEL`、`REVIEWER_MODEL`、`DEV_PROMPT_PATH`、`REVIEWER_PROMPT_PATH`、`SPECIAL_REQUIREMENTS`、`TERMINAL_APP`，跳过 Q3～Q6，只询问 Q1 和 Q2。
+
+**若选 2 或文件不存在**：走完整流程（Q1～Q6）。
+
+---
+
 按顺序提问，收集所有答案后执行 bootstrap.sh。
 
 ---

@@ -107,14 +107,15 @@ open_dev_and_reviewer_windows() {
 
   local dev_base reviewer_base dev_cmd reviewer_cmd
 
+  # 模型指定时构建命令，启动失败自动降级到默认模型
   if [[ -n "$dev_model" && "$dev_model" != "default" ]]; then
-    dev_base="claude --model $dev_model"
+    dev_base="claude --model $dev_model || claude"
   else
     dev_base="claude"
   fi
 
   if [[ -n "$reviewer_model" && "$reviewer_model" != "default" ]]; then
-    reviewer_base="claude --model $reviewer_model"
+    reviewer_base="claude --model $reviewer_model || claude"
   else
     reviewer_base="claude"
   fi
