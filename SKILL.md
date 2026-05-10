@@ -41,226 +41,183 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 
 ## 步骤
 
-### 检测缺省配置
-
-**触发 /dual-dev 后，首先检查当前 git 项目根目录下是否存在 `.claude/dual-dev-defaults.json`：**
-
-```bash
-# 用 Bash 工具执行，获取项目根目录
-git rev-parse --show-toplevel
-```
-
-若文件存在，用 Read 工具读取内容，展示给用户：
-
-> 检测到上次配置记录：
->
-> - 开发模型：`<dev_model>`
-> - 审查模型：`<reviewer_model>`
-> - 终端：`<terminal>`
-> - 提示词：`<dev_prompt_path 或 内置模板>`
-> - 特殊要求：`<special_requirements>`
->
-> 是否沿用以上配置？（只需回答 Q1 工作区路径和 Q2 功能需求）
-> 1. **沿用**（推荐）— 只回答 Q1、Q2，其余配置自动复用
-> 2. **重新配置** — 走完整 6 步流程
-
-**若选 1（沿用）**：从 JSON 文件中提取 `DEV_MODEL`、`REVIEWER_MODEL`、`DEV_PROMPT_PATH`、`REVIEWER_PROMPT_PATH`、`SPECIAL_REQUIREMENTS`、`TERMINAL_APP`，跳过 Q3～Q6，只询问 Q1 和 Q2。
-
-**若选 2 或文件不存在**：走完整流程（Q1～Q6）。
+**所有提问必须使用 `AskUserQuestion` 工具，不得以纯文本方式输出问题让用户手动输入。**
 
 ---
 
-按顺序提问，收集所有答案后执行 bootstrap.sh。
+### 检测缺省配置
+
+先用 Bash 工具获取项目根目录：
+```bash
+git rev-parse --show-toplevel
+```
+
+检查该目录下 `.claude/dual-dev-defaults.json` 是否存在。
+
+**若存在**，用 Read 工具读取，解析出上次配置，然后调用 `AskUserQuestion`：
+
+```
+问题：检测到本项目上次的配置记录（模型: <dev_model> / 终端: <terminal> / 提示词: <内置或自定义>），是否沿用？
+选项：
+  1. 沿用上次配置（只回答工作区路径和功能需求）[推荐]
+  2. 重新配置（走完整 6 步流程）
+```
+
+- 选 1：从 JSON 提取 `DEV_MODEL`、`REVIEWER_MODEL`、`DEV_PROMPT_PATH`、`REVIEWER_PROMPT_PATH`、`SPECIAL_REQUIREMENTS`、`TERMINAL_APP`，跳过 Q3～Q6
+- 选 2 / 文件不存在：走完整流程
 
 ---
 
 ### Q1：工作区路径 & 分支名
 
-询问：
+先用 Bash 获取当前分支名：`git branch --show-current`
 
-> 请提供以下信息（可一起回答）：
-> 1. **worktree 路径**：新建工作区的绝对路径，例如 `~/git/myproject-feature`
-> 2. **新建分支名**：例如 `feature/new-api`
-> 3. **基础分支**：基于哪个分支创建，例如 `main` 或 `dev`
->
-> 当前项目分支为：执行 `git branch --show-current` 获取。
+用 `AskUserQuestion` 询问（自由文本，用户在 Other 中输入）：
 
-等待用户回答，提取：`WORKTREE_PATH`、`BRANCH_NAME`、`BASE_BRANCH`。
+```
+问题：请填写工作区信息（三项用换行或空格分隔均可）：
+  1. worktree 路径（示例：~/git/<项目名>-feature）
+  2. 新建分支名（示例：feature/new-api）
+  3. 基础分支（当前分支：<current_branch>）
+选项：
+  Other（用户自行输入）
+```
+
+解析用户输入，提取 `WORKTREE_PATH`、`BRANCH_NAME`、`BASE_BRANCH`。
 
 ---
 
-### Q2：设计文档路径与内容校验
+### Q2：功能需求来源
 
-**2a. 询问来源：**
+用 `AskUserQuestion` 询问：
 
-> 请选择功能需求的来源：
-> 1. **已有设计文档** — 提供文件路径，skill 自动校验并整理模块清单
-> 2. **直接描述需求** — 没有文档，我来描述功能需求，由 Claude 生成设计文档
+```
+问题：功能需求从哪里来？
+选项：
+  1. 已有设计文档 — 提供文件路径，自动校验并整理模块清单
+  2. 直接描述需求 — 由 Claude 生成设计文档后确认
+```
 
 ---
 
 **若选 1（已有文档）：**
 
-询问路径：
-
-> 请提供设计文档路径，可以是一个或多个，用空格分隔，例如：
-> `doc/design.md doc/api-spec.md`
-
-用 Read 工具逐个校验：
-- 不存在 → 提示 `⚠️ 文件 <路径> 不存在`，重新询问
-- 存在 → 读取内容，判断是否能提取**模块清单**
-
-合规标准（满足其一即可）：
-- 有"模块"、"功能点"、"任务"等章节标题
-- 有编号列表（1. 2. 或一、二、）描述功能
-- 有类似 `## 模块X` 的结构
-
-**不合规时**，整理后请用户确认：
+用 `AskUserQuestion` 询问路径（Other 输入）：
 
 ```
-以下是从 <文件名> 中识别出的模块清单，请确认或修改：
-
-模块 1：<模块名>
-描述：<一句话功能描述>
-
-模块 2：<模块名>
-描述：<一句话功能描述>
-
-...
-
-如需调整（增删改顺序），请直接回复修改后的列表；确认无误请回复"确认"。
+问题：请输入设计文档路径（多个文件用空格分隔）
+选项：
+  Other（用户输入路径）
 ```
 
-用户确认后存入 `DESIGN_DOCS_SUMMARY`，与原始路径一起注入提示词。
+逐个用 Read 工具校验：
+- 不存在 → 重新用 `AskUserQuestion` 询问
+- 存在 → 读取内容，判断能否提取模块清单
 
-提取：`DESIGN_DOCS`（原始路径）、`DESIGN_DOCS_SUMMARY`（整理后清单，可为空）。
+**不合规时**，用 `AskUserQuestion` 展示整理后的模块清单并确认：
+
+```
+问题：以下是识别出的模块清单，请确认或选择操作：
+  模块 1：<模块名> — <描述>
+  模块 2：<模块名> — <描述>
+  ...
+选项：
+  1. 确认，直接使用
+  2. 需要修改（请在 Other 中输入修改后的列表）
+```
+
+用户确认后存入 `DESIGN_DOCS_SUMMARY`。
 
 ---
 
 **若选 2（直接描述需求）：**
 
-**2b. 收集需求：**
+用 `AskUserQuestion` 收集需求（Other 输入）：
 
-> 请描述你的功能需求，越详细越好。例如：
-> - 需要实现哪些功能模块？
-> - 各模块的核心逻辑是什么？
-> - 有哪些关键接口或数据结构？
-> - 技术栈和约束条件？
-
-等待用户输入完整需求描述。
-
-**2c. 生成设计文档（Plan 模式）：**
-
-基于用户描述，生成结构化设计文档，格式如下：
-
-```markdown
-# 功能设计文档
-
-## 背景与目标
-<需求背景一句话总结>
-
-## 模块清单
-
-### 模块一：<模块名>
-**功能描述**：<详细说明>
-**接口/数据结构**：<关键设计点>
-**实现要点**：<注意事项>
-
-### 模块二：<模块名>
-...
+```
+问题：请描述功能需求（模块、接口、技术栈、约束等）
+选项：
+  Other（用户输入需求描述）
 ```
 
-生成后展示给用户，询问：
+基于描述生成结构化设计文档，再用 `AskUserQuestion` 确认：
 
-> 以上是根据你的需求生成的设计文档草稿，请确认或提出修改意见：
-> - 回复"确认"直接使用
-> - 回复具体修改意见，我会更新后再次确认
+```
+问题：以上是生成的设计文档草稿，请选择：
+选项：
+  1. 确认，保存并使用
+  2. 需要修改（请在 Other 中输入修改意见）
+```
 
-**2d. 保存文档：**
-
-用户确认后，将文档保存到当前目录：
-- 路径：`doc/dual-dev-generated-design.md`（若 `doc/` 不存在则创建）
-- 用 Write 工具写入
-
-将该路径设为 `DESIGN_DOCS`，文档中的模块清单设为 `DESIGN_DOCS_SUMMARY`。
+确认后用 Write 工具保存到 `doc/dual-dev-generated-design.md`，设为 `DESIGN_DOCS`。
 
 ---
 
 ### Q3：Claude 模型选择
 
-询问：
+用 `AskUserQuestion` 询问：
 
-> 请选择 Claude 模型：
-> 1. 两个窗口都使用默认模型（claude-sonnet-4-6）
-> 2. 指定开发者窗口模型
-> 3. 指定审查者窗口模型
-> 4. 分别指定两个窗口的模型
->
-> 请回复序号或直接输入模型名称。
+```
+问题：请选择 Claude 模型：
+选项：
+  1. 两个窗口均使用默认模型 claude-sonnet-4-6 [推荐]
+  2. 两个窗口均使用 claude-opus-4-5
+  3. 分别为两个窗口指定模型（请在 Other 中输入，格式：开发模型,审查模型）
+```
 
-根据回答提取 `DEV_MODEL` 和 `REVIEWER_MODEL`（未指定则均为 `claude-sonnet-4-6`）。
+- 选 1 → `DEV_MODEL="claude-sonnet-4-6"` / `REVIEWER_MODEL="claude-sonnet-4-6"`
+- 选 2 → `DEV_MODEL="claude-opus-4-5"` / `REVIEWER_MODEL="claude-opus-4-5"`
+- 选 3（Other）→ 解析用户输入，分别赋值
 
 ---
 
 ### Q4：提示词选择
 
-询问：
+用 `AskUserQuestion` 询问：
 
-> 请选择角色提示词来源：
-> 1. **使用内置默认模板**（推荐）— skill 自动根据设计文档和参数渲染提示词
-> 2. **使用自定义提示词** — 我已准备好自己的提示词文件
->
-> 选 2 请分别提供开发者和审查者提示词的文件路径。
+```
+问题：请选择角色提示词来源：
+选项：
+  1. 使用内置默认模板（推荐）— 自动根据参数渲染
+  2. 使用自定义提示词文件 — 需分别提供开发者和审查者的文件路径
+```
 
-**若选 1**：`DEV_PROMPT_PATH=""` / `REVIEWER_PROMPT_PATH=""`（使用内置模板）
-
-**若选 2**：
-- 询问开发者提示词路径，用 Read 工具校验文件存在
-- 询问审查者提示词路径，用 Read 工具校验文件存在
-- 提取 `DEV_PROMPT_PATH` 和 `REVIEWER_PROMPT_PATH`
+- 选 1 → `DEV_PROMPT_PATH=""` / `REVIEWER_PROMPT_PATH=""`
+- 选 2 → 分别用 `AskUserQuestion`（Other）询问两个路径，Read 工具校验存在性
 
 ---
 
 ### Q5：特殊要求
 
-询问：
-
-> 有没有特殊要求？例如：
-> - 代码风格限制
-> - 测试覆盖率要求
-> - 禁止使用某些库
-> - 性能或安全约束
->
-> 没有要求直接回复"无"或留空。
-
-提取 `SPECIAL_REQUIREMENTS`（为空则设为空字符串）。
-
-若有 `DESIGN_DOCS_SUMMARY`，将其拼接到 `SPECIAL_REQUIREMENTS` 末尾：
+用 `AskUserQuestion` 询问：
 
 ```
-[整理后的模块清单]
----
-<原有特殊要求>
+问题：是否有特殊要求？（代码风格、测试覆盖率、禁用库、性能约束等）
+选项：
+  1. 无特殊要求
+  2. 有（请在 Other 中输入）
 ```
+
+- 选 1 → `SPECIAL_REQUIREMENTS=""`
+- 选 2（Other）→ 提取用户输入为 `SPECIAL_REQUIREMENTS`
+
+若有 `DESIGN_DOCS_SUMMARY`，拼接到 `SPECIAL_REQUIREMENTS` 末尾。
 
 ---
 
 ### Q6：终端选择
 
-询问：
+用 `AskUserQuestion` 询问：
 
-> 请选择打开终端的方式（仅 macOS）：
-> 1. **Ghostty**（推荐）— Claude Code 官方推荐终端，AppleScript 原生支持，体验更佳
->    未安装可前往：https://ghostty.org/download
-> 2. **Terminal.app** — macOS 系统自带终端，无需额外安装
->
-> 请回复 1 或 2（默认选 1）。
+```
+问题：请选择打开终端的方式（仅 macOS）：
+选项：
+  1. Ghostty（推荐）— Claude Code 官方推荐，AppleScript 原生支持；未安装自动回退 Terminal.app
+  2. Terminal.app — macOS 系统自带，无需额外安装
+```
 
-根据回答提取 `TERMINAL_APP`：
-- 选 1 或留空 → `TERMINAL_APP="ghostty"`
+- 选 1 → `TERMINAL_APP="ghostty"`
 - 选 2 → `TERMINAL_APP="terminal"`
-
-> **注**：若选 Ghostty 但未安装，bootstrap.sh 会自动回退到 Terminal.app。
 
 ---
 
