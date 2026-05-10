@@ -13,7 +13,7 @@
 最简单的方式 — 把这段话发给 Claude Code 或其他 AI 编码 Agent，它会交互式地完成整个安装和配置过程：
 
 ```
-请参考 https://raw.githubusercontent.com/3Taste/claude-dual-dev-skill/main/INSTALL.md 帮我安装 dual-dev skill
+请参考 https://raw.githubusercontent.com/3Taste/claude-dual-dev-skill/main/docs/INSTALL.md 帮我安装 dual-dev skill
 ```
 
 ### 📦 手动安装
@@ -68,7 +68,7 @@ git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git .claude/
 
 ## 安装
 
-> 详见 [INSTALL.md](INSTALL.md) — 包含 AI Agent 自动安装引导、环境检查和常见问题。
+> 详见 [docs/INSTALL.md](docs/INSTALL.md) — 包含 AI Agent 自动安装引导、环境检查和常见问题。
 
 ### 全局安装（推荐）
 
