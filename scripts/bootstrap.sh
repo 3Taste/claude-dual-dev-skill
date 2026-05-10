@@ -128,6 +128,7 @@ main() {
   setup_claude_dir "$WORKTREE_PATH"
   setup_signals "$WORKTREE_PATH"
   add_gitignore "$WORKTREE_PATH"
+  write_worktree_settings "$WORKTREE_PATH"
 
   # 同步设计文档：worktree 基于 base branch 不含未提交文件，需从主目录复制
   if [[ -n "$DESIGN_DOCS" ]]; then
