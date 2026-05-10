@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-_escape_sed_value() {
-  local value="$1"
-  # 转义 sed 替换字符串中的特殊字符：& / \（使用 bash 替换，避免 macOS head -c -1 不兼容）
-  local v="${value//\\/\\\\}"   # \ → \\
-  v="${v//&/\\&}"               # & → \&
-  v="${v//|/\\|}"               # | → \| (我们用 | 作 sed 分隔符)
-  printf '%s' "$v"
-}
-
 render_template() {
   local src="$1"
   local dst="$2"
@@ -27,10 +18,39 @@ render_template() {
     local raw_value="$2"
     shift 2
 
-    local escaped
-    escaped=$(_escape_sed_value "$raw_value")
-    sed -i '' "s|{{${key}}}|${escaped}|g" "$dst"
+    _replace_placeholder "$dst" "$key" "$raw_value"
   done
 
   echo "[dual-dev] 模板渲染完成: $dst"
+}
+
+# 用 python3 做占位符替换，支持多行值、任意特殊字符
+_replace_placeholder() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  local placeholder="{{${key}}}"
+
+  if command -v python3 > /dev/null 2>&1; then
+    python3 - "$file" "$placeholder" "$value" <<'PYEOF'
+import sys
+
+file_path = sys.argv[1]
+placeholder = sys.argv[2]
+value = sys.argv[3]
+
+with open(file_path, 'r', encoding='utf-8') as f:
+    content = f.read()
+
+content = content.replace(placeholder, value)
+
+with open(file_path, 'w', encoding='utf-8') as f:
+    f.write(content)
+PYEOF
+  else
+    # fallback: awk（支持多行，但值中的 \ 需要额外转义）
+    local escaped_value
+    escaped_value=$(printf '%s' "$value" | awk '{gsub(/\\/, "\\\\"); gsub(/&/, "\\&"); printf "%s\\n", $0}' | head -c -2)
+    awk -v key="{{${key}}}" -v val="$escaped_value" '{ gsub(key, val); print }' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+  fi
 }
