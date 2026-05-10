@@ -2,12 +2,12 @@
 name: dual-dev
 version: "1.0.0"
 description: >
-  双人开发工作流启动器：创建 git worktree，打开开发者与审查者两个终端窗口，
-  注入角色提示词，建立信号文件协议，驱动逐模块开发→审查→合并循环。
-  适用于需要严格代码审查、模块化交付的团队开发场景。
+  单机双 Agent 开发审查工作流：开发者 Agent 逐模块实现代码并提交，
+  审查者 Agent 异步轮询每次提交、输出审查结论，
+  基于信号文件驱动完整的开发→审查→合并循环。
 when_to_use: >
-  用户想启动双窗口开发审查流程、需要为某个功能分支配置开发者+审查者协作环境时触发。
-  关键词：双窗口、双人开发、开发审查、worktree 协作。
+  用户想在单机上启动双 Agent 开发审查流程、为功能分支配置自动化审查协作时触发。
+  关键词：双 Agent、开发审查、worktree、自动审查、逐模块开发。
 argument-hint: "[设计文档路径]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
