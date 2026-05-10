@@ -87,12 +87,8 @@ git show <hash>           # 看完整 diff（可能被截断）
 - 可变性风险（修改传入对象的副作用）
 - 性能隐患（N+M 次 DB 查询、全量加载无分页）
 
-**项目规范专项：**
-- Javadoc 驱动 OpenAPI：Controller/VO/BO/DTO 类/方法/字段必须有中文 Javadoc，禁用 `@Tag/@Operation/@Schema(description)` 写文本
-- DDL 只能用 `${}` 不用 `#{}`；含 DDL 的 Mapper 方法加 `@InterceptorIgnore(tenantLine = "true")`
-- 基础数据表（需追踪人工修改的）实体须加 `@TrackBaseData`
-- SQL 迁移文件：INSERT 须提供主键或用 `SELECT WHERE NOT EXISTS` 防重，`ON CONFLICT DO NOTHING` 必须指定冲突目标列或约束名
-- 提交信息符合 conventional commit（`feat/fix/refactor/docs/...:`）
+**项目规范：**
+读取 `{{WORKTREE_PATH}}/CLAUDE.md` 和 `{{WORKTREE_PATH}}/.claude/rules/` 下所有规则文件，按其中定义的规范逐项核查。若上述文件不存在，按通用最佳实践审查。
 
 **严重度分级：**
 
