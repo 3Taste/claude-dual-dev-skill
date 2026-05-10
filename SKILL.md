@@ -212,6 +212,25 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 
 ---
 
+### Q6：终端选择
+
+询问：
+
+> 请选择打开终端的方式（仅 macOS）：
+> 1. **Ghostty**（推荐）— Claude Code 官方推荐终端，AppleScript 原生支持，体验更佳
+>    未安装可前往：https://ghostty.org/download
+> 2. **Terminal.app** — macOS 系统自带终端，无需额外安装
+>
+> 请回复 1 或 2（默认选 1）。
+
+根据回答提取 `TERMINAL_APP`：
+- 选 1 或留空 → `TERMINAL_APP="ghostty"`
+- 选 2 → `TERMINAL_APP="terminal"`
+
+> **注**：若选 Ghostty 但未安装，bootstrap.sh 会自动回退到 Terminal.app。
+
+---
+
 ## 执行
 
 收集完所有回答后，用 Bash 工具在当前目录执行（将变量替换为实际值）：
@@ -227,7 +246,8 @@ bash "$SKILL_DIR/scripts/bootstrap.sh" \
   --reviewer-model "<REVIEWER_MODEL>" \
   --special-requirements "<SPECIAL_REQUIREMENTS>" \
   --dev-prompt-path "<DEV_PROMPT_PATH>" \
-  --reviewer-prompt-path "<REVIEWER_PROMPT_PATH>"
+  --reviewer-prompt-path "<REVIEWER_PROMPT_PATH>" \
+  --terminal "<TERMINAL_APP>"
 ```
 
 `DEV_PROMPT_PATH` 和 `REVIEWER_PROMPT_PATH` 为空时省略对应参数。

@@ -26,6 +26,7 @@ usage() {
   --special-requirements TEXT  特殊要求（可为空）
   --dev-prompt-path PATH       开发者自定义提示词路径（可为空，默认用内置模板）
   --reviewer-prompt-path PATH  审查者自定义提示词路径（可为空，默认用内置模板）
+  --terminal ghostty|terminal  终端选择（可为空，默认 ghostty；不可用时自动回退）
   -h, --help                   显示此帮助
 
 示例:
@@ -51,6 +52,7 @@ parse_args() {
   SPECIAL_REQUIREMENTS=""
   DEV_PROMPT_PATH=""
   REVIEWER_PROMPT_PATH=""
+  TERMINAL_APP="ghostty"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -63,6 +65,7 @@ parse_args() {
       --special-requirements) SPECIAL_REQUIREMENTS="$2";    shift 2 ;;
       --dev-prompt-path)      DEV_PROMPT_PATH="$2";         shift 2 ;;
       --reviewer-prompt-path) REVIEWER_PROMPT_PATH="$2";    shift 2 ;;
+      --terminal)             TERMINAL_APP="$2";            shift 2 ;;
       -h|--help)              usage ;;
       *)
         echo "[dual-dev] 未知参数: $1" >&2
@@ -81,6 +84,12 @@ parse_args() {
   [[ -n "$REVIEWER_PROMPT_PATH" ]] && REVIEWER_PROMPT_PATH="${REVIEWER_PROMPT_PATH/#\~/$HOME}"
   [[ -z "$DEV_MODEL" ]]      && DEV_MODEL="claude-sonnet-4-6"
   [[ -z "$REVIEWER_MODEL" ]] && REVIEWER_MODEL="claude-sonnet-4-6"
+  [[ -z "$TERMINAL_APP" ]]   && TERMINAL_APP="ghostty"
+
+  if [[ "$TERMINAL_APP" != "ghostty" && "$TERMINAL_APP" != "terminal" ]]; then
+    echo "[dual-dev] 错误：--terminal 只接受 ghostty 或 terminal" >&2
+    usage
+  fi
 }
 
 main() {
@@ -103,6 +112,7 @@ main() {
   echo "  分支      : $BRANCH_NAME (基于 $BASE_BRANCH)"
   echo "  开发模型  : $DEV_MODEL"
   echo "  审查模型  : $REVIEWER_MODEL"
+  echo "  终端      : $TERMINAL_APP"
   [[ -n "$DESIGN_DOCS" ]]          && echo "  设计文档  : $DESIGN_DOCS"
   [[ -n "$DEV_PROMPT_PATH" ]]      && echo "  开发提示词: $DEV_PROMPT_PATH (自定义)"
   [[ -n "$REVIEWER_PROMPT_PATH" ]] && echo "  审查提示词: $REVIEWER_PROMPT_PATH (自定义)"
@@ -176,7 +186,8 @@ main() {
       "$DEV_MODEL" \
       "$REVIEWER_MODEL" \
       "$dev_prompt" \
-      "$reviewer_prompt"
+      "$reviewer_prompt" \
+      "$TERMINAL_APP"
   fi
 
   echo ""

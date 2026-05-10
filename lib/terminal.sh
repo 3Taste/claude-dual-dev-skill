@@ -1,12 +1,67 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-open_terminal_window() {
+# ── Ghostty ──────────────────────────────────────────────────────────────────
+
+_open_ghostty_window() {
   local title="$1"
   local cd_path="$2"
   local cmd="$3"
 
-  if ! osascript <<APPLESCRIPT 2>/dev/null
+  osascript <<APPLESCRIPT 2>/dev/null
+tell application "Ghostty"
+  activate
+  set cfg to new surface configuration
+  set initial working directory of cfg to $(printf '"%s"' "$cd_path")
+  set win to new window with configuration cfg
+  delay 0.5
+  set t to terminal 1 of selected tab of win
+  input text $(printf '"%s\n"' "$cmd") to t
+  send t
+end tell
+APPLESCRIPT
+}
+
+open_ghostty_windows() {
+  local worktree_path="$1"
+  local dev_cmd="$2"
+  local reviewer_cmd="$3"
+
+  if ! command -v osascript > /dev/null 2>&1; then
+    return 1
+  fi
+
+  # Ghostty 是否已安装
+  if ! osascript -e 'tell application "Ghostty" to get version' > /dev/null 2>&1; then
+    echo "[dual-dev] 警告：未找到 Ghostty，回退到系统终端" >&2
+    return 1
+  fi
+
+  echo "[dual-dev] 使用 Ghostty 打开开发者窗口..."
+  if ! _open_ghostty_window "dual-dev: Developer" "$worktree_path" "$dev_cmd"; then
+    echo "[dual-dev] 警告：Ghostty 窗口打开失败（可能需要辅助功能授权）" >&2
+    return 1
+  fi
+
+  sleep 0.5
+
+  echo "[dual-dev] 使用 Ghostty 打开审查者窗口..."
+  if ! _open_ghostty_window "dual-dev: Reviewer" "$worktree_path" "$reviewer_cmd"; then
+    echo "[dual-dev] 警告：Ghostty 审查者窗口打开失败" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+# ── Terminal.app ──────────────────────────────────────────────────────────────
+
+_open_terminal_app_window() {
+  local title="$1"
+  local cd_path="$2"
+  local cmd="$3"
+
+  osascript <<APPLESCRIPT 2>/dev/null
 tell application "Terminal"
   activate
   set newTab to do script "cd $(printf '%q' "$cd_path") && $cmd"
@@ -14,12 +69,35 @@ tell application "Terminal"
   set custom title of front window to "$title"
 end tell
 APPLESCRIPT
-  then
-    echo "[dual-dev] 警告：无法通过 osascript 打开终端窗口（可能需要辅助功能授权）" >&2
-    echo "[dual-dev] 请手动打开终端，cd 到 $cd_path，然后运行：$cmd" >&2
-    return 0
-  fi
 }
+
+open_terminal_app_windows() {
+  local worktree_path="$1"
+  local dev_cmd="$2"
+  local reviewer_cmd="$3"
+
+  if ! command -v osascript > /dev/null 2>&1; then
+    return 1
+  fi
+
+  echo "[dual-dev] 使用 Terminal.app 打开开发者窗口..."
+  if ! _open_terminal_app_window "dual-dev: Developer" "$worktree_path" "$dev_cmd"; then
+    echo "[dual-dev] 警告：Terminal.app 窗口打开失败（可能需要辅助功能授权）" >&2
+    return 1
+  fi
+
+  sleep 0.5
+
+  echo "[dual-dev] 使用 Terminal.app 打开审查者窗口..."
+  if ! _open_terminal_app_window "dual-dev: Reviewer" "$worktree_path" "$reviewer_cmd"; then
+    echo "[dual-dev] 警告：Terminal.app 审查者窗口打开失败" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+# ── 统一入口 ──────────────────────────────────────────────────────────────────
 
 open_dev_and_reviewer_windows() {
   local worktree_path="$1"
@@ -27,8 +105,9 @@ open_dev_and_reviewer_windows() {
   local reviewer_model="$3"
   local dev_prompt="$4"
   local reviewer_prompt="$5"
+  local terminal_app="${6:-ghostty}"   # ghostty | terminal
 
-  local dev_base reviewer_base
+  local dev_base reviewer_base dev_cmd reviewer_cmd
 
   if [[ -n "$dev_model" && "$dev_model" != "default" ]]; then
     dev_base="claude --model $dev_model"
@@ -42,8 +121,6 @@ open_dev_and_reviewer_windows() {
     reviewer_base="claude"
   fi
 
-  # 传入提示词文件路径作为初始消息，Claude Code 启动后自动加载
-  local dev_cmd reviewer_cmd
   if [[ -n "$dev_prompt" && -f "$dev_prompt" ]]; then
     dev_cmd="$dev_base \"@$dev_prompt\""
   else
@@ -56,13 +133,28 @@ open_dev_and_reviewer_windows() {
     reviewer_cmd="$reviewer_base"
   fi
 
-  echo "[dual-dev] 打开开发者终端窗口（自动加载提示词）..."
-  open_terminal_window "dual-dev: Developer" "$worktree_path" "$dev_cmd"
+  local opened=false
 
-  sleep 0.5
+  if [[ "$terminal_app" == "ghostty" ]]; then
+    if open_ghostty_windows "$worktree_path" "$dev_cmd" "$reviewer_cmd"; then
+      opened=true
+    else
+      echo "[dual-dev] Ghostty 不可用，回退到 Terminal.app..." >&2
+      if open_terminal_app_windows "$worktree_path" "$dev_cmd" "$reviewer_cmd"; then
+        opened=true
+      fi
+    fi
+  else
+    if open_terminal_app_windows "$worktree_path" "$dev_cmd" "$reviewer_cmd"; then
+      opened=true
+    fi
+  fi
 
-  echo "[dual-dev] 打开审查者终端窗口（自动加载提示词）..."
-  open_terminal_window "dual-dev: Reviewer" "$worktree_path" "$reviewer_cmd"
-
-  echo "[dual-dev] 两个终端窗口已打开，提示词自动注入"
+  if [[ "$opened" == "true" ]]; then
+    echo "[dual-dev] 两个终端窗口已打开，提示词自动注入"
+  else
+    echo "[dual-dev] 警告：自动打开终端失败，请手动执行：" >&2
+    echo "  开发者: cd \"$worktree_path\" && $dev_cmd" >&2
+    echo "  审查者: cd \"$worktree_path\" && $reviewer_cmd" >&2
+  fi
 }

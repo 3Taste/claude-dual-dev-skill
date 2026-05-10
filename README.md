@@ -60,6 +60,7 @@ git clone --depth 1 https://github.com/3Taste/claude-dual-dev-skill.git .claude/
 | git | 2.5+ | `git worktree` 支持 |
 | Claude Code CLI | 最新版 | `claude` 命令需在 PATH 中 |
 | bash | 3.2+ | macOS 自带满足要求 |
+| Ghostty | 1.3+（推荐）| AppleScript 原生支持，[下载地址](https://ghostty.org/download)；未安装自动回退到 Terminal.app |
 
 > **Linux / Windows 用户**：bootstrap.sh 会跳过 `osascript` 步骤并提示手动打开终端，其余功能（worktree、信号文件、提示词渲染）完全可用。
 
