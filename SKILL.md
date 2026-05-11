@@ -95,17 +95,17 @@ basename $(git rev-parse --show-toplevel)  # 项目名 → worktree 路径推荐
 用 `AskUserQuestion` 询问，**选项中直接列出推荐值**，用户可直接选或自定义：
 
 ```
-问题：请确认工作区配置（推荐值已预填，可直接选或在 Other 中自定义）：
+问题：请确认工作区配置（推荐值已预填，可直接选或在输入框中自定义）：
 选项：
   1. 使用推荐配置：
      路径: ~/git/<项目名>-dev
      分支: feature/dev
      基于: <current_branch>
-  2. 自定义（在 Other 中按格式输入：路径 分支名 基础分支）
+  2. 自定义（在输入框中按格式填写：路径 分支名 基础分支）
 ```
 
 - 选 1 → 直接使用推荐值
-- 选 2（Other）→ 解析用户输入，按空格或换行分割提取三个值
+- 选 2（用户输入）→ 解析用户输入，按空格或换行分割提取三个值
 
 提取 `WORKTREE_PATH`、`BRANCH_NAME`、`BASE_BRANCH`。
 
@@ -126,12 +126,13 @@ basename $(git rev-parse --show-toplevel)  # 项目名 → worktree 路径推荐
 
 **若选 1（已有文档）：**
 
-用 `AskUserQuestion` 询问路径（Other 输入）：
+用 `AskUserQuestion` 询问路径（用户在输入框填写）：
 
 ```
-问题：请输入设计文档路径（多个文件用空格分隔）
+问题：请输入设计文档路径（多个文件用空格分隔，直接在输入框填写）
 选项：
-  Other（用户输入路径）
+  1. doc/design.md（常见路径示例）
+  2. 在输入框中填写实际路径
 ```
 
 逐个用 Read 工具校验：
@@ -147,7 +148,7 @@ basename $(git rev-parse --show-toplevel)  # 项目名 → worktree 路径推荐
   ...
 选项：
   1. 确认，直接使用
-  2. 需要修改（请在 Other 中输入修改后的列表）
+  2. 需要修改（在输入框中填写修改后的列表）
 ```
 
 用户确认后存入 `DESIGN_DOCS_SUMMARY`。
@@ -156,12 +157,13 @@ basename $(git rev-parse --show-toplevel)  # 项目名 → worktree 路径推荐
 
 **若选 2（直接描述需求）：**
 
-用 `AskUserQuestion` 收集需求（Other 输入）：
+用 `AskUserQuestion` 收集需求（用户在输入框填写）：
 
 ```
-问题：请描述功能需求（模块、接口、技术栈、约束等）
+问题：请描述功能需求（模块、接口、技术栈、约束等，直接在输入框填写）
 选项：
-  Other（用户输入需求描述）
+  1. 简单功能（单模块，无复杂依赖）
+  2. 复杂功能（多模块，在输入框中详细描述）
 ```
 
 基于描述生成结构化设计文档，再用 `AskUserQuestion` 确认：
@@ -170,7 +172,7 @@ basename $(git rev-parse --show-toplevel)  # 项目名 → worktree 路径推荐
 问题：以上是生成的设计文档草稿，请选择：
 选项：
   1. 确认，保存并使用
-  2. 需要修改（请在 Other 中输入修改意见）
+  2. 需要修改（在输入框中填写修改意见）
 ```
 
 确认后用 Write 工具保存到 `doc/dual-dev-generated-design.md`，设为 `DESIGN_DOCS`。
@@ -186,12 +188,12 @@ basename $(git rev-parse --show-toplevel)  # 项目名 → worktree 路径推荐
 选项：
   1. 两个窗口均使用默认模型 claude-sonnet-4-6 [推荐]
   2. 两个窗口均使用 claude-opus-4-5
-  3. 分别为两个窗口指定模型（请在 Other 中输入，格式：开发模型,审查模型）
+  3. 分别为两个窗口指定模型（在输入框中填写，格式：开发模型,审查模型）
 ```
 
 - 选 1 → `DEV_MODEL="claude-sonnet-4-6"` / `REVIEWER_MODEL="claude-sonnet-4-6"`
 - 选 2 → `DEV_MODEL="claude-opus-4-5"` / `REVIEWER_MODEL="claude-opus-4-5"`
-- 选 3（Other）→ 解析用户输入，分别赋值
+- 选 3（用户输入）→ 解析用户输入，分别赋值
 
 ---
 
@@ -207,7 +209,7 @@ basename $(git rev-parse --show-toplevel)  # 项目名 → worktree 路径推荐
 ```
 
 - 选 1 → `DEV_PROMPT_PATH=""` / `REVIEWER_PROMPT_PATH=""`
-- 选 2 → 分别用 `AskUserQuestion`（Other）询问两个路径，Read 工具校验存在性
+- 选 2 → 分别用 `AskUserQuestion`（输入框）询问两个路径，Read 工具校验存在性
 
 ---
 
@@ -219,11 +221,11 @@ basename $(git rev-parse --show-toplevel)  # 项目名 → worktree 路径推荐
 问题：是否有特殊要求？（代码风格、测试覆盖率、禁用库、性能约束等）
 选项：
   1. 无特殊要求
-  2. 有（请在 Other 中输入）
+  2. 有（在输入框中填写）
 ```
 
 - 选 1 → `SPECIAL_REQUIREMENTS=""`
-- 选 2（Other）→ 提取用户输入为 `SPECIAL_REQUIREMENTS`
+- 选 2（用户输入）→ 提取用户输入为 `SPECIAL_REQUIREMENTS`
 
 若有 `DESIGN_DOCS_SUMMARY`，拼接到 `SPECIAL_REQUIREMENTS` 末尾。
 
@@ -239,13 +241,13 @@ basename $(git rev-parse --show-toplevel)  # 项目名 → worktree 路径推荐
   1. 无（纯脚本/解释型语言项目，跳过编译步骤）
   2. Maven：mvn clean compile -P dev
   3. Gradle：./gradlew build
-  4. 其他（请在 Other 中输入完整命令）
+  4. 其他（在输入框中填写完整命令）
 ```
 
 - 选 1 → `BUILD_COMMAND=""`
 - 选 2 → `BUILD_COMMAND="mvn clean compile -P dev"`
 - 选 3 → `BUILD_COMMAND="./gradlew build"`
-- 选 4（Other）→ 提取用户输入
+- 选 4（用户输入）→ 提取用户输入
 
 ---
 
