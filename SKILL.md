@@ -8,7 +8,7 @@ description: >
 when_to_use: >
   用户想在单机上启动双 Agent 开发审查流程、为功能分支配置自动化审查协作时触发。
   关键词：双 Agent、开发审查、worktree、自动审查、逐模块开发。
-argument-hint: "[设计文档路径]"
+argument-hint: "[设计文档路径 | cleanup]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
@@ -33,7 +33,8 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 
 **例外（仅限以下场景可执行）：**
 - `rm` 只允许删除 `.claude/signals/review-*.md`（审查信号文件，读取后清理）
-- `git worktree remove` 只在 bootstrap 回滚时执行，且 worktree 为本次新建
+- `git worktree remove` 只在 bootstrap 回滚或清理流程中执行
+- `git branch -d`（非强制删除）只在清理流程中执行，有未合并提交时会报错保护
 
 违反约束时必须停下，向用户说明原因并请求明确授权。
 
@@ -42,6 +43,15 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ## 步骤
 
 **所有提问必须使用 `AskUserQuestion` 工具，不得以纯文本方式输出问题让用户手动输入。**
+
+---
+
+### 参数路由
+
+检测 skill 参数（即 `/dual-dev` 后面的文本）：
+
+- 若参数为 `cleanup` 或 `清理` → **跳转到末尾「清理流程」章节**，不执行后续新建流程
+- 否则（空参数 / 设计文档路径 / 其他）→ 继续执行下方正常新建流程
 
 ---
 
@@ -278,3 +288,101 @@ bash "$SKILL_DIR/scripts/bootstrap.sh" \
 `DEV_PROMPT_PATH` 和 `REVIEWER_PROMPT_PATH` 为空时省略对应参数。
 
 等待脚本输出，将结果反馈给用户。
+
+---
+
+## 清理流程
+
+当参数路由判定为 `cleanup` / `清理` 时，执行以下步骤。
+
+### 安全约束（清理专用）
+
+- `git branch -d`（非强制删除）可执行；有未合并提交时会报错保护，**不用 `-D`**
+- 不删除主仓库文件，只清理 worktree 目录
+- 任何删除操作前均需用户确认
+
+---
+
+### Step 1：发现 dual-dev worktree
+
+执行：
+```bash
+git worktree list
+```
+
+列出所有 worktree，排除主仓库（第一行）。
+
+对每个非主仓库 worktree，用 Bash 工具检查标记文件：
+```bash
+test -f "<worktree_path>/.claude/dual-dev-developer-prompt.md" && echo "dual-dev"
+```
+
+只保留存在标记文件的 worktree（即由 `/dual-dev` 创建的工作区）。
+
+- 若无 dual-dev worktree → 输出"未发现由 dual-dev 创建的工作区，无需清理。"并结束
+- 若有 → 继续下一步
+
+---
+
+### Step 2：选择清理目标
+
+用 `AskUserQuestion` 询问：
+
+```
+问题：请选择要清理的 dual-dev 工作区：
+选项：
+  <逐个列出 dual-dev worktree 路径 + 分支名>
+  全部清理
+```
+
+---
+
+### Step 3：确认清理范围
+
+用 `AskUserQuestion` 确认：
+
+```
+问题：即将清理以下内容，确认继续？
+  - worktree 目录：<路径>（将被删除）
+  - 本地分支：<分支名>（将尝试删除，有未合并提交会跳过）
+选项：
+  1. 确认，开始清理
+  2. 取消
+```
+
+---
+
+### Step 4：执行清理
+
+```bash
+# 删除 worktree
+git worktree remove "<worktree_path>"
+
+# 清理悬空引用
+git worktree prune
+
+# 尝试删除本地分支（非强制，有保护）
+git branch -d "<branch_name>"
+```
+
+若 `git branch -d` 失败（未合并提交），用 `AskUserQuestion` 询问：
+
+```
+问题：分支 <branch_name> 有未合并提交，如何处理？
+选项：
+  1. 保留分支（推荐）
+  2. 强制删除（会丢失未合并提交）
+```
+
+选 2 时执行 `git branch -D "<branch_name>"`。
+
+若选择"全部清理"，对每个 worktree 重复 Step 3-4。
+
+---
+
+### Step 5：完成提示
+
+输出清理结果摘要：
+- 已删除的 worktree
+- 已删除/保留的分支
+- 建议：若已完成开发，记得合并分支到主线
