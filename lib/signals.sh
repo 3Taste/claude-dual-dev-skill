@@ -38,7 +38,7 @@ write_worktree_settings() {
   local settings_file="$worktree_path/.claude/settings.json"
   local signals_dir="$worktree_path/.claude/signals"
 
-  # 预授权 signals 目录的 rm 操作，避免每次都弹确认框
+  # 预授权工作目录内的 Bash/Edit/Write 操作，避免开发/审查时弹确认框卡住
   # 用相对路径 glob（不含绝对路径），跨用户跨机器均有效
   python3 - "$settings_file" <<'PYEOF'
 import json, sys, os
@@ -57,6 +57,8 @@ allow_list = permissions.setdefault("allow", [])
 rules = [
     "Bash(rm .claude/signals/review-*.md)",
     "Bash(rm .*/signals/review-*.md)",
+    "Edit(**/*)",
+    "Write(**/*)",
 ]
 for rule in rules:
     if rule not in allow_list:
@@ -66,5 +68,5 @@ with open(settings_file, 'w', encoding='utf-8') as f:
     json.dump(data, f, ensure_ascii=False, indent=2)
 PYEOF
 
-  echo "[dual-dev] 已写入 worktree settings，signals 目录 rm 操作已预授权"
+  echo "[dual-dev] 已写入 worktree settings，Bash/Edit/Write 操作已预授权"
 }
